@@ -1,58 +1,30 @@
-export enum AppState {
-  WELCOME,
-  QUIZ,
-  RESULT
+export enum TrendDirection {
+  UP = 'UP',
+  DOWN = 'DOWN',
+  STABLE = 'STABLE'
 }
 
-export enum Dimension {
-  EI = 'EI', // Extraversion vs Introversion
-  SN = 'SN', // Sensing vs Intuition
-  TF = 'TF', // Thinking vs Feeling
-  JP = 'JP'  // Judging vs Perceiving
+export interface KeywordMetric {
+  keyword: string;
+  rank: number;
+  previousRank: number;
+  searchVolume: number; // Monthly estimated
+  competition: 'Low' | 'Medium' | 'High';
+  trend: TrendDirection;
+  change: number; // Rank change value
 }
 
-export enum DimensionValue {
-  E = 'E',
-  I = 'I',
-  S = 'S',
-  N = 'N',
-  T = 'T',
-  F = 'F',
-  J = 'J',
-  P = 'P'
-}
-
-export interface Option {
-  text: string;
-  value: DimensionValue;
-}
-
-export interface Question {
-  id: number;
-  text: string;
-  dimension: Dimension;
-  options: [Option, Option]; // Binary choice
-}
-
-export interface MBTIResult {
-  type: string;
-  scores: {
-    E: number;
-    I: number;
-    S: number;
-    N: number;
-    T: number;
-    F: number;
-    J: number;
-    P: number;
-  };
-}
-
-export interface AIAnalysis {
-  title: string;
+export interface KeywordAnalysisResult {
+  keyword: string;
+  difficultyScore: number; // 0-100
+  potentialScore: number; // 0-100
+  relatedKeywords: string[];
+  seasonalTrend: { month: string; volume: number }[]; // For chart
   summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  careerPath: string;
-  spiritAnimal: string;
+}
+
+export enum ViewState {
+  DASHBOARD = 'DASHBOARD',
+  ANALYSIS = 'ANALYSIS',
+  SETTINGS = 'SETTINGS'
 }

@@ -1,68 +1,108 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { MBTIResult, AIAnalysis } from "../types";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { KeywordMetric, KeywordAnalysisResult, TrendDirection } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || '';
+const ai = new GoogleGenAI({ apiKey });
 
-export const generatePersonalityAnalysis = async (result: MBTIResult): Promise<AIAnalysis> => {
-  const model = "gemini-2.5-flash";
+// Helper to get random direction for simulation variance
+const getRandomDirection = () => {
+  const rand = Math.random();
+  if (rand > 0.6) return TrendDirection.UP;
+  if (rand < 0.3) return TrendDirection.DOWN;
+  return TrendDirection.STABLE;
+};
 
-  const prompt = `
-    The user has taken an MBTI test and their result is ${result.type}.
-    Their score breakdown is:
-    Extraversion: ${result.scores.E}, Introversion: ${result.scores.I}
-    Sensing: ${result.scores.S}, Intuition: ${result.scores.N}
-    Thinking: ${result.scores.T}, Feeling: ${result.scores.F}
-    Judging: ${result.scores.J}, Perceiving: ${result.scores.P}
-
-    Generate a creative, insightful, and slightly mystical personality profile for this user.
-    The tone should be professional yet engaging and warm.
-    The 'spiritAnimal' should be a metaphor that fits their personality type well.
-  `;
+export const fetchTrendingKeywords = async (): Promise<KeywordMetric[]> => {
+  const schema: Schema = {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        keyword: { type: Type.STRING },
+        rank: { type: Type.INTEGER },
+        previousRank: { type: Type.INTEGER },
+        searchVolume: { type: Type.INTEGER },
+        competition: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] },
+      },
+      required: ['keyword', 'rank', 'previousRank', 'searchVolume', 'competition']
+    }
+  };
 
   try {
     const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
+      model: 'gemini-2.5-flash',
+      contents: "Generate a list of 10 currently trending keywords in South Korea suitable for a marketing dashboard. Include realistic (simulated) search volumes and ranks.",
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING, description: "A catchy title for this personality type (e.g. The Architect, The Visionary)" },
-            summary: { type: Type.STRING, description: "A 2-3 sentence summary of their essence." },
-            strengths: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "3 key strengths"
-            },
-            weaknesses: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "3 potential blind spots"
-            },
-            careerPath: { type: Type.STRING, description: "A brief career suggestion or work style description." },
-            spiritAnimal: { type: Type.STRING, description: "A symbolic animal representing their nature." }
-          },
-          required: ["title", "summary", "strengths", "weaknesses", "careerPath", "spiritAnimal"]
-        }
+        responseSchema: schema,
+        systemInstruction: "You are a specialized SEO data engine. Provide realistic data for South Korean market trends.",
       }
     });
 
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
+    const rawData = JSON.parse(response.text || '[]');
+    
+    // Enrich with calculated fields for UI
+    return rawData.map((item: any) => {
+        const change = item.previousRank - item.rank;
+        let trend = TrendDirection.STABLE;
+        if (change > 0) trend = TrendDirection.UP;
+        if (change < 0) trend = TrendDirection.DOWN;
 
-    return JSON.parse(text) as AIAnalysis;
+        return {
+            ...item,
+            trend,
+            change: Math.abs(change)
+        };
+    });
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    // Fallback data in case of API failure or missing key
-    return {
-      title: `${result.type} - The Thinker`,
-      summary: "You have a complex inner world and a drive to understand the systems around you. While we couldn't reach the AI oracle for a custom reading, your type suggests you are analytical and thoughtful.",
-      strengths: ["Analytical", "Strategic", "Independent"],
-      weaknesses: ["Overthinking", "Perfectionism", "Isolated"],
-      careerPath: "Strategic Planning, Engineering, or Research",
-      spiritAnimal: "Owl"
-    };
+    // Fallback data if API fails or key is missing
+    return [
+      { keyword: "날씨", rank: 1, previousRank: 2, searchVolume: 500000, competition: 'High', trend: TrendDirection.UP, change: 1 },
+      { keyword: "환율", rank: 2, previousRank: 1, searchVolume: 320000, competition: 'High', trend: TrendDirection.DOWN, change: 1 },
+      { keyword: "주식", rank: 3, previousRank: 3, searchVolume: 280000, competition: 'High', trend: TrendDirection.STABLE, change: 0 },
+    ];
+  }
+};
+
+export const analyzeSpecificKeyword = async (keyword: string): Promise<KeywordAnalysisResult> => {
+  const schema: Schema = {
+    type: Type.OBJECT,
+    properties: {
+      difficultyScore: { type: Type.INTEGER, description: "0 to 100 SEO difficulty" },
+      potentialScore: { type: Type.INTEGER, description: "0 to 100 growth potential" },
+      relatedKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+      seasonalTrend: {
+          type: Type.ARRAY,
+          items: {
+              type: Type.OBJECT,
+              properties: {
+                  month: { type: Type.STRING },
+                  volume: { type: Type.INTEGER }
+              }
+          }
+      },
+      summary: { type: Type.STRING, description: "Short strategic advice in Korean" }
+    },
+    required: ["difficultyScore", "potentialScore", "relatedKeywords", "seasonalTrend", "summary"]
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Analyze the keyword '${keyword}' for the South Korean market.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        systemInstruction: "You are an expert SEO consultant. Analyze the keyword provided and generate simulated but realistic historical data and strategic advice.",
+      }
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return { ...result, keyword };
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    throw new Error("Failed to analyze keyword");
   }
 };

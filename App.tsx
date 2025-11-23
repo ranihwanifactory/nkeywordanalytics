@@ -1,46 +1,37 @@
-import React, { useState, useCallback } from 'react';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { QuizScreen } from './components/QuizScreen';
-import { ResultScreen } from './components/ResultScreen';
-import { Background } from './components/Background';
-import { AppState, MBTIResult } from './types';
+import React, { useState } from 'react';
+import { Layout } from './components/Layout';
+import { Dashboard } from './components/Dashboard';
+import { KeywordAnalyzer } from './components/KeywordAnalyzer';
+import { ViewState } from './types';
+import { Settings } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>(AppState.WELCOME);
-  const [result, setResult] = useState<MBTIResult | null>(null);
+  const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
 
-  const startQuiz = useCallback(() => {
-    setAppState(AppState.QUIZ);
-  }, []);
-
-  const handleQuizComplete = useCallback((calculatedResult: MBTIResult) => {
-    setResult(calculatedResult);
-    setAppState(AppState.RESULT);
-  }, []);
-
-  const resetQuiz = useCallback(() => {
-    setResult(null);
-    setAppState(AppState.WELCOME);
-  }, []);
+  const renderContent = () => {
+    switch (currentView) {
+      case ViewState.DASHBOARD:
+        return <Dashboard />;
+      case ViewState.ANALYSIS:
+        return <KeywordAnalyzer />;
+      case ViewState.SETTINGS:
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
+                <Settings className="w-16 h-16 mb-4 opacity-50" />
+                <h2 className="text-2xl font-semibold mb-2 text-slate-300">설정</h2>
+                <p>현재 버전에서는 사용자 설정을 지원하지 않습니다.</p>
+                <p className="text-sm mt-2">v1.0.0 (Gemini Powered)</p>
+            </div>
+        );
+      default:
+        return <Dashboard />;
+    }
+  };
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex flex-col">
-      <Background />
-      
-      <main className="relative z-10 flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
-        {appState === AppState.WELCOME && (
-          <WelcomeScreen onStart={startQuiz} />
-        )}
-        
-        {appState === AppState.QUIZ && (
-          <QuizScreen onComplete={handleQuizComplete} />
-        )}
-        
-        {appState === AppState.RESULT && result && (
-          <ResultScreen result={result} onRetake={resetQuiz} />
-        )}
-      </main>
-    </div>
+    <Layout currentView={currentView} onNavigate={setCurrentView}>
+      {renderContent()}
+    </Layout>
   );
 };
 

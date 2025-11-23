@@ -1,4 +1,5 @@
 {
-  "name": "Lumina MBTI",
-  "description": "An AI-powered MBTI personality assessment tool that analyzes your responses to generate deep, personalized insights into your psyche."
+  "name": "N-Rank Insight AI",
+  "description": "AI-powered Naver keyword ranking analysis and simulation tool. Monitor trends, analyze keyword difficulty, and track search performance with detailed visualization.",
+  "requestFramePermissions": []
 }

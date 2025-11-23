@@ -1,5 +1,5 @@
 {
-  "name": "lumina-mbti",
+  "name": "n-rank-insight-ai",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,9 +11,8 @@
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@google/genai": "^1.30.0",
-    "framer-motion": "^12.23.24",
     "lucide-react": "^0.554.0",
+    "@google/genai": "^1.30.0",
     "recharts": "^3.5.0"
   },
   "devDependencies": {
